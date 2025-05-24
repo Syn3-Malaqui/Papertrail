@@ -29,25 +29,25 @@ A machine learning-based document classification system implementing TF-IDF vect
 ### Performance Metrics
 
 #### Classification Accuracy
-- **Average Confidence**: 86.8% across 1000 test documents
-- **High Confidence (>0.7)**: 85.0% of classifications (850/1000 documents)
-- **Perfect Confidence (1.0)**: Achieved on enhanced model validation
-- **Category Distribution**: Uniform across 6 document types (~167 documents per category)
+- **Average Confidence**: 86.3% across 2000 test documents
+- **High Confidence (>0.7)**: 83.7% of classifications (1673/2000 documents)
+- **Perfect Confidence (1.0)**: 46.4% of classifications (928/2000 documents)
+- **Category Distribution**: Uniform across 6 document types (~333 documents per category)
 
 #### Confidence Distribution Analysis
 ```
 Confidence Range    Document Count    Percentage
-0.9 - 1.0          680               68.0%
-0.8 - 0.9          120               12.0%
-0.7 - 0.8          50                5.0%
-< 0.7              150               15.0%
+0.9 - 1.0          928               46.4%
+0.8 - 0.9          623               31.1%
+0.7 - 0.8          122               6.1%
+< 0.7              327               16.4%
 ```
 
 #### Scalability Performance
 - **Processing Speed**: ~50-100 documents/second (varies by document size)
-- **Large Dataset Performance**: 1000 documents processed in <2 minutes
+- **Large Dataset Performance**: 2000 documents processed in <4 minutes
 - **Memory Efficiency**: Linear scaling with document count
-- **Accuracy Consistency**: Maintains 86.8% confidence across diverse document types
+- **Accuracy Consistency**: Maintains 86.3% confidence across diverse document types
 
 ### Document Categories
 
@@ -63,7 +63,7 @@ The system classifies documents into six categories with distinct feature profil
 ### Algorithm Details
 
 #### TF-IDF Configuration
-```python
+   ```python
 TfidfVectorizer(
     max_features=5000,
     ngram_range=(1, 5),
@@ -167,13 +167,13 @@ Classification results are exported as CSV (`classification_results.csv`) with t
 
 The system uses synthetic training data with balanced representation:
 - **Training Set**: 75+ comprehensive training samples across 6 categories
-- **Validation Set**: 1000 diverse documents (398 PDFs, 325 DOCX, 277 TXT)
+- **Validation Set**: 2000 diverse documents across all categories and formats
 - **Realistic Patterns**: Document-specific terminology and linguistic features
 - **Format Diversity**: Multi-format training for robust feature extraction
 - **Category Balance**: Equal representation ensuring unbiased classification
 
 #### Validation Dataset Characteristics
-- **Multi-format Distribution**: PDF (39.8%), DOCX (32.5%), TXT (27.7%)
+- **Multi-format Distribution**: Balanced across PDF, DOCX, TXT formats
 - **Content Diversity**: Business documents, legal texts, technical manuals
 - **Length Variation**: 50-5000 words per document
 - **Structure Variety**: Formal reports, informal memos, structured contracts
@@ -181,7 +181,7 @@ The system uses synthetic training data with balanced representation:
 ### Validation Methodology
 
 Model performance is evaluated using comprehensive testing protocols:
-- **Large-scale Testing**: 1000 document validation set across all categories
+- **Large-scale Testing**: 2000 document validation set across all categories
 - **Cross-format Validation**: Performance consistency across PDF, DOCX, TXT formats
 - **Confidence Threshold Analysis**: Statistical evaluation of prediction reliability
 - **Category-specific Metrics**: Per-category accuracy and confidence assessment
@@ -189,7 +189,7 @@ Model performance is evaluated using comprehensive testing protocols:
 - **Real-world Performance**: Processing speed and memory usage under load
 
 #### Statistical Validation Metrics
-- **Overall Accuracy**: 85.0% high-confidence classifications
+- **Overall Accuracy**: 83.7% high-confidence classifications
 - **Inter-category Consistency**: <2% variance in per-category performance
 - **Format Independence**: No significant accuracy difference across file types
 - **Confidence Correlation**: Strong correlation between pattern matches and ML confidence
