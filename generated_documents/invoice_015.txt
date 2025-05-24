@@ -1,0 +1,17 @@
+INVOICE #INV-2024-7158
+
+Date: March 22, 2025
+Bill To: TechSolutions Inc
+4421 Commerce Dr
+Philadelphia, PA
+
+Description                              Qty    Rate        Amount
+Professional Consulting                  92     $428.00   $29,715.00
+                                                           --------
+                                         Subtotal:         $29,715.00
+                                         Tax (8.75%):         $2,600.06
+                                         TOTAL DUE:        $32,315.06
+
+Payment Terms: Net 45 days
+Please remit payment within 30 days of invoice date.
+Account Number: 541094

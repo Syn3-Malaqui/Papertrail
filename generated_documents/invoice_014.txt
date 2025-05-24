@@ -1,0 +1,17 @@
+INVOICE #INV-2024-3311
+
+Date: May 24, 2025
+Bill To: TechSolutions Inc
+4675 Corporate Blvd
+Austin, TX
+
+Description                              Qty    Rate        Amount
+Professional Consulting                  79     $277.00   $12,444.00
+                                                           --------
+                                         Subtotal:         $12,444.00
+                                         Tax (7.75%):         $964.41
+                                         TOTAL DUE:        $13,408.41
+
+Payment Terms: Net 30 days
+Please remit payment within 15 days of invoice date.
+Account Number: 528477

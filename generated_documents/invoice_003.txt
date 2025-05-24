@@ -1,0 +1,17 @@
+INVOICE #INV-2023-6597
+
+Date: March 31, 2025
+Bill To: NextGen Industries
+9784 Business Ave
+Houston, TX
+
+Description                              Qty    Rate        Amount
+Technical Support                        80     $424.00   $14,915.00
+                                                           --------
+                                         Subtotal:         $14,915.00
+                                         Tax (7.75%):         $1,155.91
+                                         TOTAL DUE:        $16,070.91
+
+Payment Terms: Net 45 days
+Please remit payment within 45 days of invoice date.
+Account Number: 762333

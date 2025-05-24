@@ -1,0 +1,17 @@
+INVOICE #INV-2024-7312
+
+Date: May 01, 2025
+Bill To: Global Enterprises LLC
+4217 Main St
+New York, NY
+
+Description                              Qty    Rate        Amount
+Professional Consulting                  64     $463.00   $36,520.00
+                                                           --------
+                                         Subtotal:         $36,520.00
+                                         Tax (8.75%):         $3,195.50
+                                         TOTAL DUE:        $39,715.50
+
+Payment Terms: Net 45 days
+Please remit payment within 15 days of invoice date.
+Account Number: 779836

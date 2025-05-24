@@ -1,0 +1,17 @@
+INVOICE #INV-2023-6179
+
+Date: March 05, 2025
+Bill To: Elite Consulting
+7059 Main St
+Chicago, IL
+
+Description                              Qty    Rate        Amount
+Business Strategy                        32     $260.00   $43,932.00
+                                                           --------
+                                         Subtotal:         $43,932.00
+                                         Tax (8.75%):         $3,844.05
+                                         TOTAL DUE:        $47,776.05
+
+Payment Terms: Net 30 days
+Please remit payment within 30 days of invoice date.
+Account Number: 428400

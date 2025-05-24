@@ -1,0 +1,26 @@
+VENDOR AGREEMENT
+
+This Vendor Agreement ("Agreement") is entered into on May 06, 2025, between Premier Technologies ("Provider") and ABC Corporation ("Client").
+
+1. SERVICES
+Provider agrees to provide technical support services as outlined in Exhibit A, attached hereto and incorporated by reference.
+
+2. TERM
+This Agreement shall commence on June 07, 2025 and shall continue for a period of 6 months, unless terminated earlier in accordance with the provisions herein.
+
+3. COMPENSATION
+Client agrees to pay Provider a monthly fee of $24,635.00 for the services rendered, payable within 15 days of receipt of invoice.
+
+4. TERMINATION
+Either party may terminate this Agreement with 30 days written notice.
+
+5. CONFIDENTIALITY
+Both parties agree to maintain confidentiality of all proprietary information shared during the term of this Agreement.
+
+6. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of New York.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+
+Provider: _______________________    Client: _______________________
+Premier Technologies             ABC Corporation
