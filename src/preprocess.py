@@ -61,7 +61,7 @@ class TextPreprocessor:
     
     def clean_text(self, text: str) -> str:
         """
-        Basic text cleaning operations.
+        Enhanced text cleaning while preserving important structural elements.
         
         Args:
             text: Raw text to clean
@@ -72,22 +72,83 @@ class TextPreprocessor:
         if not text:
             return ""
         
+        # Preserve important structural elements before cleaning
+        preserved_elements = self._preserve_structural_elements(text)
+        
         # Convert to lowercase
         text = text.lower()
         
         # Remove extra whitespace and newlines
         text = re.sub(r'\s+', ' ', text)
         
-        # Remove special characters but keep basic punctuation
-        text = re.sub(r'[^\w\s\.\,\!\?]', ' ', text)
+        # Remove special characters but keep basic punctuation and important symbols
+        text = re.sub(r'[^\w\s\.\,\!\?\:\;\-\_\$]', ' ', text)
         
-        # Remove numbers (optional - you might want to keep them for some documents)
-        text = re.sub(r'\d+', '', text)
+        # Keep important numbers for document identification
+        # Only remove small standalone numbers that aren't part of important patterns
+        text = re.sub(r'\b\d{1,2}\b(?!\d)', '', text)  # Remove small standalone numbers
         
         # Remove extra spaces
         text = re.sub(r'\s+', ' ', text).strip()
         
+        # Reintegrate preserved elements
+        for element in preserved_elements:
+            if element not in text:
+                text = f"{text} {element}"
+        
         return text
+    
+    def _preserve_structural_elements(self, text: str) -> List[str]:
+        """
+        Identify and preserve important structural elements from the text.
+        
+        Args:
+            text: Original text
+            
+        Returns:
+            List of preserved elements
+        """
+        preserved = []
+        text_lower = text.lower()
+        
+        # Preserve document type indicators
+        doc_type_patterns = [
+            r'invoice\s+(?:number|#|no\.?)\s*:?\s*\w+',
+            r'memorandum',
+            r'employment\s+contract',
+            r'service\s+agreement',
+            r'legal\s+notice',
+            r'quarterly\s+report',
+            r'case\s+(?:number|#)',
+            r'plaintiff\s+v\.?\s+defendant',
+            r'amount\s+due',
+            r'payment\s+terms',
+            r'effective\s+date',
+            r'signature\s+required'
+        ]
+        
+        for pattern in doc_type_patterns:
+            matches = re.findall(pattern, text_lower)
+            preserved.extend(matches)
+        
+        # Preserve currency amounts (important for invoices)
+        currency_pattern = r'\$[\d,]+\.?\d*'
+        currency_matches = re.findall(currency_pattern, text)
+        preserved.extend([match.lower() for match in currency_matches])
+        
+        # Preserve important structural keywords
+        structural_keywords = [
+            'invoice', 'memorandum', 'contract', 'agreement', 'legal', 'court',
+            'report', 'analysis', 'plaintiff', 'defendant', 'billing', 'payment',
+            'quarterly', 'annual', 'executive', 'summary', 'whereas', 'parties',
+            'terms', 'conditions', 'signature', 'witness'
+        ]
+        
+        for keyword in structural_keywords:
+            if keyword in text_lower:
+                preserved.append(keyword)
+        
+        return list(set(preserved))  # Remove duplicates
     
     def tokenize_text(self, text: str) -> List[str]:
         """

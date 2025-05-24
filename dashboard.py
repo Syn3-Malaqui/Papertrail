@@ -1,6 +1,6 @@
 """
-Papertrail Interactive Dashboard
-A Streamlit-based web dashboard for document classification results.
+Papertrail Dashboard - Advanced Document Classification Visualization
+A comprehensive Streamlit dashboard for viewing classification results and statistics.
 """
 
 import streamlit as st
@@ -9,25 +9,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
-import sys
-import tempfile
-import zipfile
-import shutil
+import glob
 from datetime import datetime
-from typing import Dict, Any, Optional
-import base64
-
-# Add src to path for imports
-sys.path.append('src')
-from src.parser import DocumentParser
-from src.preprocess import TextPreprocessor
-from src.predict import DocumentClassifier
-from main import PapertrailPipeline
+import numpy as np
 
 # Page configuration
 st.set_page_config(
     page_title="📄 Papertrail Dashboard",
-    page_icon="📄",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -36,429 +25,368 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        color: white;
+        font-size: 3rem;
+        color: #1f77b4;
         text-align: center;
         margin-bottom: 2rem;
     }
-    .metric-card {
-        background: #f0f2f6;
+    .metric-container {
+        background-color: #f0f2f6;
         padding: 1rem;
-        border-radius: 10px;
-        border-left: 4px solid #667eea;
+        border-radius: 0.5rem;
+        margin: 0.5rem 0;
     }
-    .stDownloadButton > button {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 0.5rem 1rem;
+    .success-metric {
+        background-color: #d4edda;
+        border-left: 4px solid #28a745;
+    }
+    .warning-metric {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+    }
+    .error-metric {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
     }
 </style>
 """, unsafe_allow_html=True)
 
-def create_download_link(file_path: str, link_text: str, file_name: str = None) -> str:
-    """Create a download link for a file."""
-    if not os.path.exists(file_path):
-        return "File not found"
-    
-    with open(file_path, "rb") as file:
-        encoded = base64.b64encode(file.read()).decode()
-    
-    if file_name is None:
-        file_name = os.path.basename(file_path)
-    
-    href = f'<a href="data:application/octet-stream;base64,{encoded}" download="{file_name}" style="text-decoration: none; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.5rem 1rem; border-radius: 5px;">{link_text}</a>'
-    return href
+def load_classification_data():
+    """Load the most recent classification results."""
+    try:
+        # Look for classification result files
+        csv_files = glob.glob("*classification_results*.csv")
+        if not csv_files:
+            return None, "No classification results found. Please run the classification first."
+        
+        # Get the most recent file
+        latest_file = max(csv_files, key=os.path.getctime)
+        
+        # Load the data
+        df = pd.read_csv(latest_file)
+        
+        return df, latest_file
+    except Exception as e:
+        return None, f"Error loading data: {str(e)}"
 
-def create_zip_from_organized_folders(organized_folder: str) -> str:
-    """Create a zip file from organized folders."""
-    zip_path = os.path.join(tempfile.gettempdir(), f"papertrail_organized_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip")
-    
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(organized_folder):
-            for file in files:
-                file_path = os.path.join(root, file)
-                # Create relative path for the zip
-                relative_path = os.path.relpath(file_path, organized_folder)
-                zipf.write(file_path, relative_path)
-    
-    return zip_path
-
-def plot_distribution_chart(df: pd.DataFrame) -> go.Figure:
-    """Create an interactive pie chart of document type distribution."""
+def create_category_pie_chart(df):
+    """Create an interactive pie chart for category distribution."""
     category_counts = df['predicted_category'].value_counts()
     
-    # Create pie chart
-    fig = go.Figure(data=[go.Pie(
-        labels=category_counts.index,
+    # Create pie chart with custom colors
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+    
+    fig = px.pie(
         values=category_counts.values,
-        hole=0.4,
-        hovertemplate="<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>",
-        textinfo='label+percent',
-        textposition='auto',
-        marker=dict(
-            colors=['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'],
-            line=dict(color='#FFFFFF', width=2)
-        )
-    )])
+        names=category_counts.index,
+        title="📊 Document Category Distribution",
+        color_discrete_sequence=colors,
+        hole=0.3  # Donut chart
+    )
+    
+    fig.update_traces(
+        textposition='inside',
+        textinfo='percent+label',
+        hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+    )
     
     fig.update_layout(
-        title={
-            'text': "📊 Document Type Distribution",
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 20, 'color': '#2F3542'}
-        },
-        showlegend=True,
-        legend=dict(
-            orientation="v",
-            yanchor="middle",
-            y=0.5,
-            xanchor="left",
-            x=1.01
-        ),
-        margin=dict(t=60, b=20, l=20, r=120),
-        height=400
+        font_size=14,
+        title_font_size=18,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     
     return fig
 
-def plot_confidence_distribution(df: pd.DataFrame) -> go.Figure:
-    """Create a histogram of confidence scores."""
+def create_confidence_histogram(df):
+    """Create a histogram showing confidence distribution."""
     fig = px.histogram(
         df, 
         x='confidence',
-        nbins=20,
         title="🎯 Confidence Score Distribution",
         labels={'confidence': 'Confidence Score', 'count': 'Number of Documents'},
-        color_discrete_sequence=['#667eea']
+        color_discrete_sequence=['#45B7D1']
     )
     
     fig.update_layout(
-        title_x=0.5,
+        xaxis_title="Confidence Score",
+        yaxis_title="Number of Documents",
         title_font_size=18,
-        height=350
+        showlegend=False
+    )
+    
+    # Add vertical line for average confidence
+    avg_confidence = df['confidence'].mean()
+    fig.add_vline(
+        x=avg_confidence, 
+        line_dash="dash", 
+        line_color="red",
+        annotation_text=f"Avg: {avg_confidence:.3f}"
     )
     
     return fig
 
-def create_detailed_table(df: pd.DataFrame) -> pd.DataFrame:
-    """Create a detailed, searchable table."""
-    # Round confidence scores
-    df_display = df.copy()
-    df_display['confidence'] = df_display['confidence'].round(3)
-    
-    # Add emoji icons for categories
-    category_icons = {
-        'invoice': '📄',
-        'memo': '📝',
-        'legal': '⚖️',
-        'report': '📊',
-        'contract': '📋',
-        'other': '📂'
-    }
-    
-    df_display['category_icon'] = df_display['predicted_category'].map(category_icons)
-    df_display['display_category'] = df_display['category_icon'] + ' ' + df_display['predicted_category'].str.title()
-    
-    # Reorder columns for better display
-    columns_order = ['filename', 'display_category', 'confidence', 'word_count', 'text_length']
-    df_display = df_display[columns_order]
-    
-    # Rename columns for better display
-    df_display.columns = ['📄 Filename', '📂 Category', '🎯 Confidence', '📝 Words', '📏 Length']
-    
-    return df_display
-
-def main():
-    """Main dashboard application."""
-    
-    # Header
-    st.markdown("""
-        <div class="main-header">
-            <h1>📄 Papertrail Document Classification Dashboard</h1>
-            <p>Intelligent document analysis with interactive visualizations</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Sidebar for file upload and processing
-    st.sidebar.markdown("## 🔧 Processing Options")
-    
-    # Folder selection
-    folder_path = st.sidebar.text_input(
-        "📁 Document Folder Path:",
-        placeholder="Enter folder path containing documents...",
-        help="Enter the full path to the folder containing your documents"
+def create_confidence_by_category(df):
+    """Create box plot showing confidence distribution by category."""
+    fig = px.box(
+        df,
+        x='predicted_category',
+        y='confidence',
+        title="📈 Confidence Scores by Category",
+        color='predicted_category',
+        color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
     )
     
-    # Processing options
-    st.sidebar.markdown("### ⚙️ Advanced Options")
-    use_stemming = st.sidebar.checkbox("🌱 Enable stemming", value=False, help="Apply word stemming for better text analysis")
-    organize_files = st.sidebar.checkbox("📁 Organize files by category", value=False, help="Create organized folders for each document type")
+    fig.update_layout(
+        xaxis_title="Document Category",
+        yaxis_title="Confidence Score",
+        title_font_size=18,
+        showlegend=False
+    )
     
-    # Process button
-    process_button = st.sidebar.button("🚀 Process Documents", type="primary")
+    return fig
+
+def create_file_count_bar_chart(df):
+    """Create bar chart showing file count by category with confidence info."""
+    category_stats = df.groupby('predicted_category').agg({
+        'confidence': ['count', 'mean'],
+        'filename': 'count'
+    }).round(3)
     
-    # Initialize session state
-    if 'results' not in st.session_state:
-        st.session_state.results = None
-    if 'processing_complete' not in st.session_state:
-        st.session_state.processing_complete = False
+    category_stats.columns = ['count', 'avg_confidence', 'file_count']
+    category_stats = category_stats.reset_index()
     
-    # Process documents when button is clicked
-    if process_button and folder_path:
-        if not os.path.exists(folder_path):
-            st.sidebar.error("❌ Folder path does not exist!")
-        else:
-            with st.spinner("🔄 Processing documents... This may take a few minutes."):
-                try:
-                    # Initialize pipeline
-                    pipeline = PapertrailPipeline(
-                        use_stemming=use_stemming,
-                        move_files=organize_files
-                    )
-                    
-                    # Process documents
-                    result = pipeline.process_folder(folder_path, "dashboard_results.csv")
-                    
-                    if result['success']:
-                        st.session_state.results = result
-                        st.session_state.processing_complete = True
-                        st.sidebar.success("✅ Processing completed successfully!")
-                    else:
-                        st.sidebar.error(f"❌ Processing failed: {result['error']}")
-                        
-                except Exception as e:
-                    st.sidebar.error(f"❌ Error: {str(e)}")
+    fig = px.bar(
+        category_stats,
+        x='predicted_category',
+        y='count',
+        title="📁 Document Count by Category",
+        color='avg_confidence',
+        color_continuous_scale='Viridis',
+        text='count'
+    )
     
-    # Main dashboard content
-    if st.session_state.processing_complete and st.session_state.results:
-        result = st.session_state.results
-        
-        # Load results data
-        if os.path.exists("dashboard_results.csv"):
-            df = pd.read_csv("dashboard_results.csv")
-            
-            # Summary metrics
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric(
-                    label="📁 Total Files",
-                    value=result['stats']['total_files_found']
-                )
-            
-            with col2:
-                st.metric(
-                    label="✅ Successfully Processed",
-                    value=result['stats']['successfully_classified']
-                )
-            
-            with col3:
-                avg_confidence = df['confidence'].mean()
-                st.metric(
-                    label="🎯 Avg Confidence",
-                    value=f"{avg_confidence:.3f}"
-                )
-            
-            with col4:
-                high_confidence = len(df[df['confidence'] > 0.7])
-                st.metric(
-                    label="⭐ High Confidence",
-                    value=f"{high_confidence}/{len(df)}"
-                )
-            
-            # Charts row
-            chart_col1, chart_col2 = st.columns([2, 1])
-            
-            with chart_col1:
-                # Distribution pie chart
-                fig_pie = plot_distribution_chart(df)
-                st.plotly_chart(fig_pie, use_container_width=True)
-            
-            with chart_col2:
-                # Confidence distribution
-                fig_conf = plot_confidence_distribution(df)
-                st.plotly_chart(fig_conf, use_container_width=True)
-            
-            # Searchable table
-            st.markdown("## 📋 Document Details")
-            
-            # Search functionality
-            search_term = st.text_input(
-                "🔍 Search documents:",
-                placeholder="Search by filename or category...",
-                help="Search for specific documents by name or filter by category"
-            )
-            
-            # Category filter
-            categories = ['All'] + sorted(df['predicted_category'].unique().tolist())
-            selected_category = st.selectbox("📂 Filter by category:", categories)
-            
-            # Apply filters
-            filtered_df = df.copy()
-            
-            if search_term:
-                filtered_df = filtered_df[
-                    filtered_df['filename'].str.contains(search_term, case=False, na=False) |
-                    filtered_df['predicted_category'].str.contains(search_term, case=False, na=False)
-                ]
-            
-            if selected_category != 'All':
-                filtered_df = filtered_df[filtered_df['predicted_category'] == selected_category]
-            
-            # Display filtered table
-            display_df = create_detailed_table(filtered_df)
-            st.dataframe(
-                display_df,
-                use_container_width=True,
-                height=400,
-                hide_index=True
-            )
-            
-            # Download section
-            st.markdown("## 📥 Download Results")
-            
-            download_col1, download_col2, download_col3 = st.columns(3)
-            
-            with download_col1:
-                # Download CSV report
-                if os.path.exists("dashboard_results.csv"):
-                    with open("dashboard_results.csv", "rb") as file:
-                        st.download_button(
-                            label="📊 Download CSV Report",
-                            data=file.read(),
-                            file_name=f"papertrail_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv"
-                        )
-            
-            with download_col2:
-                # Download detailed report (Excel-like)
-                excel_buffer = pd.ExcelWriter("detailed_report.xlsx", engine='openpyxl')
-                df.to_excel(excel_buffer, sheet_name='Classification Results', index=False)
-                
-                # Add summary sheet
-                summary_data = {
-                    'Metric': ['Total Files Found', 'Successfully Processed', 'Average Confidence', 'High Confidence Count'],
-                    'Value': [
-                        result['stats']['total_files_found'],
-                        result['stats']['successfully_classified'],
-                        f"{df['confidence'].mean():.3f}",
-                        len(df[df['confidence'] > 0.7])
-                    ]
-                }
-                summary_df = pd.DataFrame(summary_data)
-                summary_df.to_excel(excel_buffer, sheet_name='Summary', index=False)
-                excel_buffer.close()
-                
-                with open("detailed_report.xlsx", "rb") as file:
-                    st.download_button(
-                        label="📈 Download Excel Report",
-                        data=file.read(),
-                        file_name=f"papertrail_detailed_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-            
-            with download_col3:
-                # Download organized folders as zip
-                if organize_files and result['stats']['files_moved'] > 0:
-                    # Find the organized folder
-                    organized_folder = None
-                    if 'organized_documents' in os.listdir('.'):
-                        organized_folder = './organized_documents'
-                    else:
-                        # Look for organized_documents in the processed folder
-                        for root, dirs, files in os.walk('.'):
-                            if 'organized_documents' in dirs:
-                                organized_folder = os.path.join(root, 'organized_documents')
-                                break
-                    
-                    if organized_folder and os.path.exists(organized_folder):
-                        zip_path = create_zip_from_organized_folders(organized_folder)
-                        with open(zip_path, "rb") as file:
-                            st.download_button(
-                                label="🗂️ Download Organized Folders",
-                                data=file.read(),
-                                file_name=f"papertrail_organized_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
-                                mime="application/zip"
-                            )
-                else:
-                    st.info("📝 Enable 'Organize files by category' to download organized folders")
-            
-            # Additional insights
-            st.markdown("## 📈 Insights & Statistics")
-            
-            insight_col1, insight_col2 = st.columns(2)
-            
-            with insight_col1:
-                st.markdown("### 📊 Category Breakdown")
-                category_stats = df['predicted_category'].value_counts()
-                for category, count in category_stats.items():
-                    percentage = (count / len(df)) * 100
-                    st.write(f"**{category.title()}**: {count} documents ({percentage:.1f}%)")
-            
-            with insight_col2:
-                st.markdown("### 🎯 Confidence Analysis")
-                high_conf = len(df[df['confidence'] > 0.8])
-                medium_conf = len(df[(df['confidence'] > 0.5) & (df['confidence'] <= 0.8)])
-                low_conf = len(df[df['confidence'] <= 0.5])
-                
-                st.write(f"**High Confidence (>0.8)**: {high_conf} documents")
-                st.write(f"**Medium Confidence (0.5-0.8)**: {medium_conf} documents")
-                st.write(f"**Low Confidence (≤0.5)**: {low_conf} documents")
-        
-        else:
-            st.error("❌ Results file not found. Please process documents first.")
+    fig.update_traces(texttemplate='%{text}', textposition='outside')
+    fig.update_layout(
+        xaxis_title="Document Category",
+        yaxis_title="Number of Documents",
+        title_font_size=18,
+        coloraxis_colorbar=dict(title="Avg Confidence")
+    )
     
-    else:
-        # Welcome message and instructions
-        st.markdown("""
-        ## 👋 Welcome to Papertrail Dashboard!
-        
-        This interactive dashboard helps you analyze and classify your documents with powerful visualizations and insights.
-        
-        ### 🚀 Getting Started:
-        1. **Enter folder path** in the sidebar containing your PDF, TXT, or DOCX files
-        2. **Choose options** like stemming and file organization
-        3. **Click 'Process Documents'** to start the analysis
-        4. **Explore results** with interactive charts and searchable tables
-        5. **Download reports** in various formats
-        
-        ### 📊 Features:
-        - **Interactive pie charts** showing document type distribution
-        - **Searchable table** with filtering capabilities
-        - **Confidence score analysis** to assess prediction reliability
-        - **Multiple download formats** (CSV, Excel, ZIP)
-        - **Real-time processing** with progress indicators
-        
-        ### 📁 Supported File Types:
-        - 📄 **PDF files** (text-based)
-        - 📝 **Word documents** (.docx)
-        - 📄 **Text files** (.txt)
-        
-        **Ready to get started?** Enter your document folder path in the sidebar! 👉
-        """)
-        
-        # Sample visualization for demo
-        st.markdown("### 📊 Sample Dashboard Preview")
-        sample_data = {
-            'Category': ['Invoice', 'Memo', 'Legal', 'Report', 'Contract'],
-            'Count': [15, 8, 12, 6, 9]
-        }
-        sample_df = pd.DataFrame(sample_data)
-        
-        fig_sample = px.pie(
-            sample_df,
-            values='Count',
-            names='Category',
-            title="Sample Document Distribution",
-            color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+    return fig
+
+def display_summary_metrics(df):
+    """Display key summary metrics."""
+    total_docs = len(df)
+    avg_confidence = df['confidence'].mean()
+    high_confidence = len(df[df['confidence'] > 0.9])
+    perfect_confidence = len(df[df['confidence'] == 1.0])
+    categories = df['predicted_category'].nunique()
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric(
+            label="📁 Total Documents",
+            value=f"{total_docs:,}",
+            delta=None
         )
-        fig_sample.update_layout(height=300)
-        st.plotly_chart(fig_sample, use_container_width=True)
+    
+    with col2:
+        st.metric(
+            label="🎯 Average Confidence",
+            value=f"{avg_confidence:.3f}",
+            delta=f"{((avg_confidence - 0.8) * 100):+.1f}%" if avg_confidence > 0.8 else None
+        )
+    
+    with col3:
+        st.metric(
+            label="⭐ High Confidence (>0.9)",
+            value=f"{high_confidence:,}",
+            delta=f"{(high_confidence/total_docs)*100:.1f}%"
+        )
+    
+    with col4:
+        st.metric(
+            label="🎖️ Perfect Confidence (1.0)",
+            value=f"{perfect_confidence:,}",
+            delta=f"{(perfect_confidence/total_docs)*100:.1f}%"
+        )
+    
+    with col5:
+        st.metric(
+            label="🏷️ Categories Found",
+            value=f"{categories}",
+            delta=None
+        )
+
+def display_category_breakdown(df):
+    """Display detailed category breakdown."""
+    st.subheader("📋 Category Performance Breakdown")
+    
+    category_stats = df.groupby('predicted_category').agg({
+        'confidence': ['count', 'mean', 'min', 'max', 'std'],
+        'text_length': 'mean',
+        'word_count': 'mean'
+    }).round(3)
+    
+    category_stats.columns = [
+        'Document Count', 'Avg Confidence', 'Min Confidence', 
+        'Max Confidence', 'Std Confidence', 'Avg Text Length', 'Avg Word Count'
+    ]
+    
+    # Add percentage column
+    category_stats['Percentage'] = (category_stats['Document Count'] / len(df) * 100).round(1)
+    
+    # Reorder columns
+    category_stats = category_stats[['Document Count', 'Percentage', 'Avg Confidence', 
+                                   'Min Confidence', 'Max Confidence', 'Std Confidence',
+                                   'Avg Text Length', 'Avg Word Count']]
+    
+    # Style the dataframe
+    styled_df = category_stats.style.format({
+        'Document Count': '{:.0f}',
+        'Percentage': '{:.1f}%',
+        'Avg Confidence': '{:.3f}',
+        'Min Confidence': '{:.3f}',
+        'Max Confidence': '{:.3f}',
+        'Std Confidence': '{:.3f}',
+        'Avg Text Length': '{:.0f}',
+        'Avg Word Count': '{:.0f}'
+    }).background_gradient(subset=['Avg Confidence'], cmap='RdYlGn')
+    
+    st.dataframe(styled_df, use_container_width=True)
+
+def display_low_confidence_files(df, threshold=0.8):
+    """Display files with confidence below threshold."""
+    low_confidence = df[df['confidence'] < threshold].sort_values('confidence')
+    
+    if len(low_confidence) > 0:
+        st.subheader(f"⚠️ Files with Confidence < {threshold}")
+        st.dataframe(
+            low_confidence[['filename', 'predicted_category', 'confidence', 'word_count']],
+            use_container_width=True
+        )
+    else:
+        st.success(f"🎉 All files have confidence ≥ {threshold}!")
+
+def main():
+    """Main dashboard function."""
+    
+    # Header
+    st.markdown('<h1 class="main-header">📄 Papertrail Classification Dashboard</h1>', 
+                unsafe_allow_html=True)
+    
+    # Load data
+    df, file_info = load_classification_data()
+    
+    if df is None:
+        st.error(f"❌ {file_info}")
+        st.info("💡 Please run the classification first: `python main.py diverse_sample_documents`")
+        return
+    
+    # Sidebar
+    st.sidebar.markdown("## 📊 Dashboard Controls")
+    st.sidebar.success(f"✅ Data loaded from: `{file_info}`")
+    st.sidebar.info(f"📅 Last modified: {datetime.fromtimestamp(os.path.getctime(file_info)).strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # Confidence threshold selector
+    confidence_threshold = st.sidebar.slider(
+        "🎯 Confidence Threshold for Alerts",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.8,
+        step=0.05
+    )
+    
+    # Category filter
+    categories = ['All'] + sorted(df['predicted_category'].unique().tolist())
+    selected_category = st.sidebar.selectbox("🏷️ Filter by Category", categories)
+    
+    # Filter data if category selected
+    filtered_df = df if selected_category == 'All' else df[df['predicted_category'] == selected_category]
+    
+    # Main content
+    st.markdown("---")
+    
+    # Summary metrics
+    display_summary_metrics(filtered_df)
+    
+    st.markdown("---")
+    
+    # Charts section
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Pie chart
+        pie_chart = create_category_pie_chart(filtered_df)
+        st.plotly_chart(pie_chart, use_container_width=True)
+    
+    with col2:
+        # Confidence histogram
+        conf_hist = create_confidence_histogram(filtered_df)
+        st.plotly_chart(conf_hist, use_container_width=True)
+    
+    # Second row of charts
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        # Bar chart
+        bar_chart = create_file_count_bar_chart(filtered_df)
+        st.plotly_chart(bar_chart, use_container_width=True)
+    
+    with col4:
+        # Box plot
+        box_plot = create_confidence_by_category(filtered_df)
+        st.plotly_chart(box_plot, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Detailed breakdown
+    display_category_breakdown(filtered_df)
+    
+    st.markdown("---")
+    
+    # Low confidence alerts
+    display_low_confidence_files(filtered_df, confidence_threshold)
+    
+    st.markdown("---")
+    
+    # Raw data view
+    with st.expander("🔍 View Raw Classification Data"):
+        st.dataframe(filtered_df, use_container_width=True)
+    
+    # Export options
+    st.markdown("### 💾 Export Options")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📊 Download Filtered Data as CSV"):
+            csv = filtered_df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name=f"papertrail_filtered_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+    
+    with col2:
+        if st.button("📈 Download Summary Stats"):
+            summary_stats = filtered_df.groupby('predicted_category').agg({
+                'confidence': ['count', 'mean', 'min', 'max', 'std']
+            }).round(3)
+            csv = summary_stats.to_csv()
+            st.download_button(
+                label="📥 Download Summary",
+                data=csv,
+                file_name=f"papertrail_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+    
+    with col3:
+        if st.button("🔄 Refresh Data"):
+            st.rerun()
 
 if __name__ == "__main__":
     main() 

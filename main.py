@@ -297,20 +297,25 @@ def cli_mode():
     parser.add_argument("--gui", action="store_true",
                         help="Launch GUI mode")
     parser.add_argument("--dashboard", action="store_true",
-                        help="Launch interactive web dashboard")
+                        help="Launch web dashboard after classification")
     
     args = parser.parse_args()
-    
-    # Dashboard mode
-    if args.dashboard:
-        print("🌐 Launching interactive web dashboard...")
-        import subprocess
-        subprocess.run(["streamlit", "run", "dashboard.py"])
-        return
     
     # GUI mode
     if args.gui:
         gui_mode()
+        return
+
+    # Dashboard mode
+    if args.dashboard:
+        try:
+            import subprocess
+            import sys
+            print("🚀 Launching Papertrail Dashboard...")
+            subprocess.run([sys.executable, "launch_dashboard.py"])
+        except Exception as e:
+            print(f"❌ Error launching dashboard: {e}")
+            print("💡 Try running: python launch_dashboard.py")
         return
 
     # Get folder path
@@ -335,7 +340,7 @@ def cli_mode():
     # Process documents
     pipeline = PapertrailPipeline(
         use_stemming=args.stemming,
-        move_files=args.organize
+        move_files=True  # Always organize files by default
     )
     
     result = pipeline.process_folder(folder_path, args.output)
@@ -343,6 +348,19 @@ def cli_mode():
     if result['success']:
         print(f"\n🎉 Processing completed successfully!")
         print(f"📊 Results saved to: {args.output}")
+        
+        # Ask if user wants to view dashboard
+        try:
+            response = input("\n🚀 Would you like to view the results in the dashboard? (y/n): ").lower()
+            if response == 'y':
+                import subprocess
+                import sys
+                subprocess.run([sys.executable, "launch_dashboard.py"])
+        except KeyboardInterrupt:
+            print("\nSkipping dashboard launch.")
+        except Exception as e:
+            print(f"Dashboard launch failed: {e}")
+            print("💡 You can manually launch it with: python launch_dashboard.py")
     else:
         print(f"\n❌ Processing failed: {result['error']}")
 
@@ -352,26 +370,15 @@ def main():
     print("🚀 Welcome to Papertrail - Document Classification System!")
     print("   Automatically classify PDF, TXT, and DOCX files\n")
     
-    # Check for dashboard mode
-    if len(sys.argv) > 1 and "--dashboard" in sys.argv:
-        print("🌐 Launching interactive web dashboard...")
-        import subprocess
-        subprocess.run(["streamlit", "run", "dashboard.py"])
-        return
-    
     # Check if GUI mode was requested via arguments
     if len(sys.argv) > 1 and "--gui" in sys.argv:
         gui_mode()
     elif len(sys.argv) == 1:
         # No arguments - ask user for mode preference
         if GUI_AVAILABLE:
-            choice = input("Choose interface mode:\n  1. 🌐 Web Dashboard (recommended)\n  2. 🖥️  GUI Mode\n  3. 💻 Command Line Mode\n  Enter choice (1, 2, or 3): ").strip()
+            choice = input("Choose interface mode:\n  1. 🖥️  GUI Mode\n  2. 💻 Command Line Mode\n  Enter choice (1 or 2): ").strip()
             
             if choice == "1":
-                print("🌐 Launching interactive web dashboard...")
-                import subprocess
-                subprocess.run(["streamlit", "run", "dashboard.py"])
-            elif choice == "2":
                 gui_mode()
             else:
                 cli_mode()
