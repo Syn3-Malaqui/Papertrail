@@ -63,7 +63,7 @@ The system classifies documents into six categories with distinct feature profil
 ### Algorithm Details
 
 #### TF-IDF Configuration
-```python
+   ```python
 TfidfVectorizer(
     max_features=5000,
     ngram_range=(1, 5),

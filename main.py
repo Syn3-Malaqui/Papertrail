@@ -115,6 +115,7 @@ class PapertrailPipeline:
     def organize_files(self, base_folder: str, predictions: Dict[str, Dict[str, Any]]):
         """
         Organize files into folders based on their predicted categories.
+        Enhanced to handle all supported file formats and provide comprehensive feedback.
         
         Args:
             base_folder: Original folder containing the files
@@ -131,15 +132,31 @@ class PapertrailPipeline:
                 category_folder = os.path.join(organized_folder, category)
                 os.makedirs(category_folder, exist_ok=True)
             
-            # Move files
+            print(f"📁 Created category folders: {', '.join(sorted(categories))}")
+            
+            # Track organization statistics
             moved_count = 0
+            format_stats = {}
+            category_stats = {category: 0 for category in categories}
+            
+            # Move files
             for filename, result in predictions.items():
                 source_path = None
                 
-                # Find the original file
+                # Find the original file (check both direct path and in parsed_files)
+                possible_paths = [
+                    os.path.join(base_folder, filename),  # Direct in base folder
+                ]
+                
+                # Add all paths from parsed_files that match the filename
                 for file_path in self.parser.parsed_files:
                     if os.path.basename(file_path) == filename:
-                        source_path = file_path
+                        possible_paths.append(file_path)
+                
+                # Find the actual existing file
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        source_path = path
                         break
                 
                 if source_path and os.path.exists(source_path):
@@ -147,18 +164,54 @@ class PapertrailPipeline:
                     destination = os.path.join(organized_folder, category, filename)
                     
                     try:
+                        # Create destination directory if it doesn't exist
+                        os.makedirs(os.path.dirname(destination), exist_ok=True)
+                        
+                        # Move the file
                         shutil.move(source_path, destination)
                         moved_count += 1
-                        print(f"  📁 Moved {filename} -> {category}/")
+                        
+                        # Track statistics
+                        file_ext = os.path.splitext(filename)[1].lower()
+                        format_stats[file_ext] = format_stats.get(file_ext, 0) + 1
+                        category_stats[category] += 1
+                        
+                        confidence = result['confidence']
+                        confidence_icon = "🟢" if confidence > 0.7 else "🟡" if confidence > 0.5 else "🟠"
+                        print(f"  {confidence_icon} Moved {filename} -> {category}/ (confidence: {confidence:.3f})")
+                        
                     except Exception as e:
                         print(f"  ❌ Failed to move {filename}: {e}")
+                else:
+                    print(f"  ⚠️  Source file not found for {filename}")
             
             self.stats['files_moved'] = moved_count
+            
+            # Print comprehensive organization summary
             print(f"\n✅ Successfully organized {moved_count} files into categories")
             print(f"📂 Organized files location: {organized_folder}")
             
+            if format_stats:
+                print(f"\n📊 Files organized by format:")
+                format_icons = {
+                    '.pdf': '📄', '.docx': '📝', '.txt': '📋', '.doc': '📄', 
+                    '.html': '🌐', '.htm': '🌐', '.rtf': '📄', '.odt': '📄', 
+                    '.pptx': '📊', '.ppt': '📊', '.xlsx': '📊', '.xls': '📊'
+                }
+                for fmt, count in sorted(format_stats.items()):
+                    icon = format_icons.get(fmt, '📄')
+                    print(f"   {icon} {fmt.upper()}: {count} files")
+            
+            if category_stats:
+                print(f"\n🗂️  Files organized by category:")
+                for category, count in sorted(category_stats.items()):
+                    if count > 0:
+                        print(f"   📁 {category}: {count} files")
+            
         except Exception as e:
             print(f"❌ Error organizing files: {e}")
+            import traceback
+            traceback.print_exc()
     
     def print_final_summary(self, predictions: Dict[str, Dict[str, Any]]):
         """Print a summary of the processing results."""
@@ -340,8 +393,15 @@ def cli_mode():
     # Process documents
     pipeline = PapertrailPipeline(
         use_stemming=args.stemming,
-        move_files=True  # Always organize files by default
+        move_files=args.organize if args.organize else True  # Default to True, override only if explicitly set
     )
+    
+    print(f"\n🚀 Processing documents in: {folder_path}")
+    print(f"📊 Results will be saved to: {args.output}")
+    print(f"📁 Files will be organized into category folders: {'Yes' if pipeline.move_files else 'No'}")
+    if pipeline.move_files:
+        print(f"   📂 Organized files will be in: {os.path.join(folder_path, 'organized_documents')}")
+    print()
     
     result = pipeline.process_folder(folder_path, args.output)
     

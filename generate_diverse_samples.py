@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Diverse Sample Document Generator for Papertrail
-Creates realistic documents in PDF, TXT, and DOCX formats with proper formatting.
+Creates realistic documents in multiple formats with proper formatting.
+Now supports: PDF, TXT, DOCX, DOC, HTML/HTM, RTF, ODT, PPTX, PPT, XLSX, XLS
 """
 
 import os
@@ -22,12 +23,48 @@ from docx import Document as DocxDocument
 from docx.shared import Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+# Additional format imports (with graceful fallbacks)
+try:
+    import pandas as pd
+    import openpyxl
+    from openpyxl.styles import Font, Alignment
+except ImportError:
+    pd = openpyxl = None
+
+try:
+    from pptx import Presentation
+    from pptx.util import Inches as PptxInches
+except ImportError:
+    Presentation = PptxInches = None
+
+try:
+    from odf.opendocument import OpenDocumentText
+    from odf.style import Style, TextProperties, ParagraphProperties
+    from odf.text import P, H
+except ImportError:
+    OpenDocumentText = Style = TextProperties = ParagraphProperties = P = H = None
+
 class DiverseDocumentGenerator:
     """Generates realistic documents in multiple formats with proper formatting."""
     
     def __init__(self, output_dir: str = "diverse_sample_documents"):
         self.output_dir = output_dir
         self.setup_data()
+        self._check_dependencies()
+        
+    def _check_dependencies(self):
+        """Check and warn about missing dependencies."""
+        missing = []
+        if pd is None or openpyxl is None:
+            missing.append("pandas/openpyxl (for Excel files)")
+        if Presentation is None:
+            missing.append("python-pptx (for PowerPoint files)")
+        if OpenDocumentText is None:
+            missing.append("odfpy (for ODT files)")
+        
+        if missing:
+            print(f"⚠️  Warning: Missing dependencies for: {', '.join(missing)}")
+            print("   Install with: pip install -r requirements.txt")
         
     def setup_data(self):
         """Setup realistic data for generating documents."""
@@ -35,7 +72,9 @@ class DiverseDocumentGenerator:
             "TechnoGlobal Solutions Inc", "Meridian Consulting Group", "Apex Digital Systems",
             "Pinnacle Financial Services", "Innovative Research Labs", "Strategic Partners LLC",
             "NextGen Technologies Corp", "Elite Business Solutions", "ProActive Enterprises",
-            "Dynamic Consulting Group", "Premier Analytics Inc", "Advanced Systems Ltd"
+            "Dynamic Consulting Group", "Premier Analytics Inc", "Advanced Systems Ltd",
+            "Innovation Dynamics Corp", "Strategic Alliance Group", "Digital Transform LLC",
+            "Enterprise Solutions Inc", "Global Systems Technologies", "Future Vision Consulting"
         ]
         
         self.people = [
@@ -44,7 +83,9 @@ class DiverseDocumentGenerator:
             ("Jessica", "Anderson", "HR Director"), ("Robert", "Williams", "Sales Manager"),
             ("Amanda", "Taylor", "Project Manager"), ("James", "Brown", "Senior Analyst"),
             ("Lauren", "Davis", "Marketing Director"), ("Christopher", "Wilson", "Finance Manager"),
-            ("Michelle", "Garcia", "Operations Lead")
+            ("Michelle", "Garcia", "Operations Lead"), ("Daniel", "Lee", "Technical Lead"),
+            ("Rachel", "Martinez", "Business Analyst"), ("Kevin", "Johnson", "Quality Manager"),
+            ("Lisa", "Zhang", "Data Scientist"), ("Mark", "Thompson", "Security Officer")
         ]
         
         self.addresses = [
@@ -53,13 +94,38 @@ class DiverseDocumentGenerator:
             ("2100 Corporate Square", "New York", "NY", "10001"),
             ("555 Innovation Way", "Seattle", "WA", "98101"),
             ("1775 Professional Plaza", "Chicago", "IL", "60601"),
-            ("3300 Executive Circle", "Dallas", "TX", "75201")
+            ("3300 Executive Circle", "Dallas", "TX", "75201"),
+            ("4400 Technology Center", "Boston", "MA", "02101"),
+            ("5500 Corporate Drive", "Atlanta", "GA", "30301")
+        ]
+
+        # Enhanced document content templates
+        self.invoice_services = [
+            "Professional Consulting Services", "Software Development", "System Integration",
+            "Technical Support Services", "Project Management", "Data Analysis Services",
+            "Training and Education", "Quality Assurance Testing", "Security Assessment"
+        ]
+        
+        self.memo_subjects = [
+            "Policy Update - Remote Work Guidelines", "Quarterly Team Meeting Schedule",
+            "New Safety Procedures Implementation", "Budget Allocation for Q4 Projects",
+            "Performance Review Process Updates", "Holiday Schedule Announcement",
+            "Training Program Requirements", "Office Relocation Timeline",
+            "IT Security Protocol Changes", "Employee Benefits Enhancement"
+        ]
+        
+        self.contract_types = [
+            "Professional Services Agreement", "Software License Agreement", 
+            "Consulting Services Contract", "Maintenance and Support Agreement",
+            "Employment Agreement", "Non-Disclosure Agreement",
+            "Service Level Agreement", "Partnership Agreement"
         ]
 
     def create_output_dir(self):
-        """Create output directory structure."""
+        """Create output directory structure for all supported formats."""
         os.makedirs(self.output_dir, exist_ok=True)
-        for fmt in ['pdf', 'docx', 'txt']:
+        formats = ['pdf', 'docx', 'txt', 'doc', 'html', 'rtf', 'odt', 'pptx', 'ppt', 'xlsx', 'xls']
+        for fmt in formats:
             os.makedirs(os.path.join(self.output_dir, fmt), exist_ok=True)
 
     def random_date(self, days_back: int = 365) -> datetime:
@@ -69,6 +135,387 @@ class DiverseDocumentGenerator:
     def format_currency(self, amount: float) -> str:
         """Format currency amount."""
         return f"${amount:,.2f}"
+
+    # ===========================================
+    # NEW FILE FORMAT GENERATORS
+    # ===========================================
+
+    def generate_html_document(self, filename: str, doc_type: str, content_data: dict) -> str:
+        """Generate HTML document."""
+        filepath = os.path.join(self.output_dir, 'html', filename)
+        
+        html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{content_data['title']}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }}
+        .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; }}
+        .company {{ font-size: 24px; font-weight: bold; color: #2c3e50; }}
+        .doc-type {{ font-size: 18px; margin: 10px 0; color: #34495e; }}
+        .content {{ margin: 30px 0; }}
+        .section {{ margin: 20px 0; }}
+        .section h3 {{ color: #2980b9; border-bottom: 1px solid #3498db; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #f2f2f2; }}
+        .footer {{ margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company">{content_data['company']}</div>
+        <div class="doc-type">{content_data['title']}</div>
+        <div>Date: {content_data['date']}</div>
+    </div>
+    
+    <div class="content">
+        {content_data['body']}
+    </div>
+    
+    <div class="footer">
+        <p><strong>Document Information:</strong></p>
+        <p>Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
+        <p>Author: {content_data.get('author', 'System Generated')}</p>
+        <p>Version: {random.randint(1, 5)}.{random.randint(0, 9)}</p>
+    </div>
+</body>
+</html>"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        return filepath
+
+    def generate_rtf_document(self, filename: str, doc_type: str, content_data: dict) -> str:
+        """Generate RTF document."""
+        filepath = os.path.join(self.output_dir, 'rtf', filename)
+        
+        # Basic RTF structure
+        rtf_content = r"""{{\rtf1\ansi\ansicpg1252\deff0 {{\fonttbl{{\f0\fswiss\fcharset0 Arial;}}}}
+{{\colortbl;\red0\green0\blue0;\red46\green125\blue186;}}
+\viewkind4\uc1\pard\sa200\sl276\slmult1\qc\cf2\b\f0\fs28 """ + content_data['company'] + r"""
+\par """ + content_data['title'] + r"""
+\par \cf1\b0\fs20 Date: """ + content_data['date'] + r"""
+\par \pard\sa200\sl276\slmult1\ql
+\par """ + content_data['body'].replace('\n', r'\par ') + r"""
+\par 
+\par \b Document Information:\b0
+\par Generated: """ + datetime.now().strftime('%B %d, %Y') + r"""
+\par Author: """ + content_data.get('author', 'System Generated') + r"""
+\par Version: """ + f"{random.randint(1, 5)}.{random.randint(0, 9)}" + r"""
+\par }}"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(rtf_content)
+        return filepath
+
+    def generate_odt_document(self, filename: str, doc_type: str, content_data: dict) -> str:
+        """Generate ODT document."""
+        if OpenDocumentText is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'odt', filename)
+        
+        try:
+            doc = OpenDocumentText()
+            
+            # Add title
+            title = H(outlinelevel=1, text=content_data['title'])
+            doc.text.addElement(title)
+            
+            # Add company and date
+            company_para = P(text=f"Company: {content_data['company']}")
+            doc.text.addElement(company_para)
+            
+            date_para = P(text=f"Date: {content_data['date']}")
+            doc.text.addElement(date_para)
+            
+            # Add empty line
+            doc.text.addElement(P())
+            
+            # Add content (split by lines)
+            for line in content_data['body'].split('\n'):
+                if line.strip():
+                    para = P(text=line.strip())
+                    doc.text.addElement(para)
+                else:
+                    doc.text.addElement(P())
+            
+            # Add footer info
+            doc.text.addElement(P())
+            footer_info = P(text=f"Generated: {datetime.now().strftime('%B %d, %Y')} | Author: {content_data.get('author', 'System Generated')}")
+            doc.text.addElement(footer_info)
+            
+            doc.save(filepath)
+            return filepath
+        except Exception as e:
+            print(f"Error generating ODT: {e}")
+            return None
+
+    def generate_pptx_document(self, filename: str, doc_type: str, content_data: dict) -> str:
+        """Generate PowerPoint PPTX document."""
+        if Presentation is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'pptx', filename)
+        
+        try:
+            prs = Presentation()
+            
+            # Title slide
+            title_slide_layout = prs.slide_layouts[0]
+            slide = prs.slides.add_slide(title_slide_layout)
+            title = slide.shapes.title
+            subtitle = slide.placeholders[1]
+            
+            title.text = content_data['title']
+            subtitle.text = f"{content_data['company']}\n{content_data['date']}"
+            
+            # Content slide
+            bullet_slide_layout = prs.slide_layouts[1]
+            slide = prs.slides.add_slide(bullet_slide_layout)
+            title = slide.shapes.title
+            content = slide.placeholders[1]
+            
+            title.text = "Overview"
+            
+            # Split content into bullet points
+            content_lines = content_data['body'].split('\n')
+            bullet_text = ""
+            for line in content_lines[:8]:  # Limit to 8 bullet points
+                if line.strip():
+                    bullet_text += f"• {line.strip()}\n"
+            
+            content.text = bullet_text
+            
+            # Summary slide if content is long
+            if len(content_lines) > 8:
+                summary_slide = prs.slides.add_slide(bullet_slide_layout)
+                summary_slide.shapes.title.text = "Additional Information"
+                summary_content = summary_slide.placeholders[1]
+                
+                remaining_text = ""
+                for line in content_lines[8:15]:  # Next 7 lines
+                    if line.strip():
+                        remaining_text += f"• {line.strip()}\n"
+                summary_content.text = remaining_text
+            
+            prs.save(filepath)
+            return filepath
+        except Exception as e:
+            print(f"Error generating PPTX: {e}")
+            return None
+
+    def generate_xlsx_document(self, filename: str, doc_type: str, content_data: dict) -> str:
+        """Generate Excel XLSX document."""
+        if pd is None or openpyxl is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'xlsx', filename)
+        
+        try:
+            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+                # Create different sheets based on document type
+                if 'invoice' in doc_type.lower():
+                    # Invoice data
+                    invoice_data = {
+                        'Description': [
+                            'Professional Consulting Services',
+                            'Technical Support',
+                            'Project Management',
+                            'Quality Assurance',
+                            'Documentation',
+                            '',
+                            'Subtotal',
+                            'Tax (8.75%)',
+                            'Total Amount Due'
+                        ],
+                        'Hours': [40, 20, 15, 10, 5, '', '', '', ''],
+                        'Rate': [150, 125, 175, 100, 75, '', '', '', ''],
+                        'Amount': [6000, 2500, 2625, 1000, 375, '', 12500, 1093.75, 13593.75]
+                    }
+                    df = pd.DataFrame(invoice_data)
+                    df.to_excel(writer, sheet_name='Invoice Details', index=False)
+                    
+                elif 'report' in doc_type.lower():
+                    # Report data with multiple sheets
+                    # Financial data
+                    financial_data = {
+                        'Quarter': ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+                        'Revenue': [450000, 520000, 480000, 610000],
+                        'Expenses': [320000, 340000, 350000, 380000],
+                        'Profit': [130000, 180000, 130000, 230000],
+                        'Growth %': [5.2, 15.6, -7.7, 27.1]
+                    }
+                    df_financial = pd.DataFrame(financial_data)
+                    df_financial.to_excel(writer, sheet_name='Financial Summary', index=False)
+                    
+                    # Performance metrics
+                    metrics_data = {
+                        'Metric': ['Customer Satisfaction', 'Employee Retention', 'Market Share', 
+                                 'Response Time', 'Quality Score', 'Cost Efficiency'],
+                        'Current': [4.2, 92, 15.8, 2.3, 94.5, 87.2],
+                        'Target': [4.5, 95, 18.0, 2.0, 95.0, 90.0],
+                        'Status': ['Below Target', 'Below Target', 'Below Target', 
+                                 'Above Target', 'Below Target', 'Below Target']
+                    }
+                    df_metrics = pd.DataFrame(metrics_data)
+                    df_metrics.to_excel(writer, sheet_name='Performance Metrics', index=False)
+                    
+                else:
+                    # General document data
+                    doc_info = {
+                        'Field': ['Document Type', 'Company', 'Date', 'Author', 'Version', 'Status'],
+                        'Value': [content_data['title'], content_data['company'], 
+                                content_data['date'], content_data.get('author', 'System Generated'),
+                                f"{random.randint(1, 5)}.{random.randint(0, 9)}", 'Active']
+                    }
+                    df_info = pd.DataFrame(doc_info)
+                    df_info.to_excel(writer, sheet_name='Document Info', index=False)
+                    
+                    # Sample data table
+                    sample_data = {
+                        'Item': [f'Item {i+1}' for i in range(10)],
+                        'Category': [random.choice(['A', 'B', 'C']) for _ in range(10)],
+                        'Value': [random.randint(100, 1000) for _ in range(10)],
+                        'Status': [random.choice(['Active', 'Inactive', 'Pending']) for _ in range(10)]
+                    }
+                    df_sample = pd.DataFrame(sample_data)
+                    df_sample.to_excel(writer, sheet_name='Sample Data', index=False)
+            
+            return filepath
+        except Exception as e:
+            print(f"Error generating XLSX: {e}")
+            return None
+
+    def generate_xls_document(self, filename: str, doc_type: str, content_data: dict) -> str:
+        """Generate legacy Excel XLS document (simplified version)."""
+        if pd is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'xls', filename)
+        
+        try:
+            # Create simple data for XLS
+            if 'invoice' in doc_type.lower():
+                data = {
+                    'Item': ['Consulting Services', 'Technical Support', 'Training'],
+                    'Amount': [5000.00, 2500.00, 1500.00],
+                    'Tax': [437.50, 218.75, 131.25],
+                    'Total': [5437.50, 2718.75, 1631.25]
+                }
+            elif 'report' in doc_type.lower():
+                data = {
+                    'Month': ['January', 'February', 'March', 'April'],
+                    'Revenue': [45000, 52000, 48000, 61000],
+                    'Expenses': [32000, 34000, 35000, 38000],
+                    'Profit': [13000, 18000, 13000, 23000]
+                }
+            else:
+                data = {
+                    'Field': ['Document', 'Company', 'Date', 'Version'],
+                    'Value': [content_data['title'], content_data['company'], 
+                            content_data['date'], f"{random.randint(1, 5)}.{random.randint(0, 9)}"]
+                }
+            
+            df = pd.DataFrame(data)
+            df.to_excel(filepath, index=False, engine='xlwt')
+            return filepath
+        except Exception as e:
+            print(f"Error generating XLS: {e}")
+            return None
+
+    def generate_doc_document(self, filename: str, doc_type: str, content_data: dict) -> str:
+        """Generate legacy DOC document (creates RTF with .doc extension for compatibility)."""
+        # Since true .doc generation is complex, we'll create RTF content with .doc extension
+        # This will be readable by most Word processors
+        filepath = os.path.join(self.output_dir, 'doc', filename)
+        
+        rtf_content = r"""{{\rtf1\ansi\ansicpg1252\deff0 {{\fonttbl{{\f0\fswiss\fcharset0 Arial;}}}}
+{{\colortbl;\red0\green0\blue0;\red46\green125\blue186;}}
+\viewkind4\uc1\pard\sa200\sl276\slmult1\qc\cf2\b\f0\fs28 """ + content_data['company'] + r"""
+\par """ + content_data['title'] + r"""
+\par \cf1\b0\fs20 Date: """ + content_data['date'] + r"""
+\par \pard\sa200\sl276\slmult1\ql
+\par """ + content_data['body'].replace('\n', r'\par ') + r"""
+\par 
+\par \b Document Information:\b0
+\par Generated: """ + datetime.now().strftime('%B %d, %Y') + r"""
+\par Author: """ + content_data.get('author', 'System Generated') + r"""
+\par Format: Legacy DOC (RTF Compatible)
+\par }}"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(rtf_content)
+        return filepath
+
+    # ===========================================
+    # ENHANCED CONTENT GENERATORS FOR EACH CATEGORY
+    # ===========================================
+
+    def create_invoice_content(self, fmt: str) -> dict:
+        """Create enhanced invoice content."""
+        company = random.choice(self.companies)
+        invoice_num = f"INV-{random.randint(2023, 2024)}-{random.randint(1000, 9999)}"
+        date = self.random_date(90).strftime('%B %d, %Y')
+        client_company = random.choice([c for c in self.companies if c != company])
+        
+        services = random.sample(self.invoice_services, random.randint(2, 4))
+        subtotal = random.randint(5000, 25000)
+        tax_rate = 0.0875
+        tax = subtotal * tax_rate
+        total = subtotal + tax
+        
+        if fmt in ['html', 'rtf', 'odt']:
+            body = f"""
+            <div class="section">
+                <h3>Invoice Details</h3>
+                <p><strong>Invoice Number:</strong> {invoice_num}</p>
+                <p><strong>Bill To:</strong> {client_company}</p>
+                <p><strong>Due Date:</strong> {(datetime.now() + timedelta(days=30)).strftime('%B %d, %Y')}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Services Provided</h3>
+                <table>
+                    <tr><th>Description</th><th>Amount</th></tr>
+                    {"".join([f"<tr><td>{service}</td><td>${random.randint(1000, 8000):,}.00</td></tr>" for service in services])}
+                    <tr><th>Subtotal</th><th>${subtotal:,}.00</th></tr>
+                    <tr><th>Tax (8.75%)</th><th>${tax:,.2f}</th></tr>
+                    <tr><th>Total Amount Due</th><th>${total:,.2f}</th></tr>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h3>Payment Information</h3>
+                <p>Payment Terms: Net 30 days</p>
+                <p>Please remit payment to the address above or contact our billing department.</p>
+            </div>
+            """
+        else:
+            body = f"""Invoice Number: {invoice_num}
+Bill To: {client_company}
+Due Date: {(datetime.now() + timedelta(days=30)).strftime('%B %d, %Y')}
+
+SERVICES PROVIDED:
+{chr(10).join([f'• {service}: ${random.randint(1000, 8000):,}.00' for service in services])}
+
+Subtotal: ${subtotal:,}.00
+Tax (8.75%): ${tax:,.2f}
+TOTAL AMOUNT DUE: ${total:,.2f}
+
+Payment Terms: Net 30 days
+Please remit payment to the address above or contact our billing department for questions."""
+        
+        return {
+            'title': 'PROFESSIONAL SERVICES INVOICE',
+            'company': company,
+            'date': date,
+            'body': body,
+            'author': f"Billing Department"
+        }
 
     def generate_invoice_pdf(self, filename: str) -> str:
         """Generate a professional invoice PDF."""
@@ -953,7 +1400,7 @@ Date: {date.strftime('%B %d, %Y')}
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.darkblue),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTSIZE', (0, 0), (-1, -1), 12),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
             ('GRID', (0, 0), (-1, -1), 1, colors.black)
@@ -1043,7 +1490,8 @@ Date: {date.strftime('%B %d, %Y')}
         <b>6. GOVERNING LAW</b><br/>
         This Agreement shall be governed by the laws of the State of {random.choice(['California', 'New York', 'Texas'])}.
         
-        <b>IN WITNESS WHEREOF</b>, the parties have executed this Agreement as of the date first written above.
+        <b>IN WITNESS WHEREOF</b>, the parties have executed this Agreement as of the date first 
+        written above.
         """
         
         elements.append(Paragraph(agreement_text, styles['Normal']))
@@ -1149,6 +1597,7 @@ Date: {date.strftime('%B %d, %Y')}
         sig_para = doc.add_paragraph()
         sig_para.add_run('SIGNATURES:\n').bold = True
         sig_para.add_run(f'\nEmployer: {company1}\n\n')
+        sig_para.add_run(f'Employee: {party1_name} {party1_last}\n\n')
         sig_para.add_run('Signature: _________________________  Date: ___________\n\n')
         sig_para.add_run(f'Employee: {party1_name} {party1_last}\n\n')
         sig_para.add_run('Signature: _________________________  Date: ___________')
@@ -1331,13 +1780,409 @@ Date: {date.strftime('%B %d, %Y')}
         doc.save(filepath)
         return filepath
 
-    def generate_all_diverse_documents(self, total_docs: int = 60) -> Dict[str, int]:
-        """Generate diverse documents across all formats and categories."""
-        print("🚀 Generating diverse sample documents in multiple formats...")
+    def create_memo_content(self, fmt: str) -> dict:
+        """Create enhanced memo content."""
+        company = random.choice(self.companies)
+        sender_name, sender_last, sender_title = random.choice(self.people)
+        subject = random.choice(self.memo_subjects)
+        date = self.random_date(30).strftime('%B %d, %Y')
+        
+        if fmt in ['html', 'rtf', 'odt']:
+            body = f"""
+            <div class="section">
+                <h3>TO:</h3> <p>All Staff Members</p>
+                <h3>FROM:</h3> <p>{sender_name} {sender_last}, {sender_title}</p>
+                <h3>SUBJECT:</h3> <p>{subject}</p>
+            </div>
+            
+            <div class="section">
+                <h3>MEMO CONTENT:</h3>
+                <p>This memorandum serves to inform all staff members of important updates and changes to company policy.</p>
+                <p><strong>Effective Date:</strong> {(datetime.now() + timedelta(days=random.randint(7, 30))).strftime('%B %d, %Y')}</p>
+                <p><strong>Implementation Details:</strong></p>
+                <ul>
+                    <li>All employees must review the updated procedures by the effective date</li>
+                    <li>Department heads should schedule team meetings to discuss changes</li>
+                    <li>Questions should be directed to Human Resources or your direct supervisor</li>
+                    <li>Compliance with new policies is mandatory for all staff members</li>
+                </ul>
+                <p>Please ensure you understand these changes and contact HR if you have any questions.</p>
+            </div>
+            """
+        else:
+            body = f"""TO: All Staff Members
+FROM: {sender_name} {sender_last}, {sender_title}
+SUBJECT: {subject}
+
+This memorandum serves to inform all staff members of important updates and changes to company policy.
+
+Effective Date: {(datetime.now() + timedelta(days=random.randint(7, 30))).strftime('%B %d, %Y')}
+
+IMPLEMENTATION DETAILS:
+• All employees must review the updated procedures by the effective date
+• Department heads should schedule team meetings to discuss changes  
+• Questions should be directed to Human Resources or your direct supervisor
+• Compliance with new policies is mandatory for all staff members
+
+Please ensure you understand these changes and contact HR if you have any questions.
+
+Best regards,
+{sender_name} {sender_last}
+{sender_title}"""
+
+        return {
+            'title': 'INTERNAL MEMORANDUM',
+            'company': company,
+            'date': date,
+            'body': body,
+            'author': f"{sender_name} {sender_last}"
+        }
+
+    def create_contract_content(self, fmt: str) -> dict:
+        """Create enhanced contract content."""
+        company1 = random.choice(self.companies)
+        company2 = random.choice([c for c in self.companies if c != company1])
+        contract_type = random.choice(self.contract_types)
+        date = self.random_date(60).strftime('%B %d, %Y')
+        
+        if fmt in ['html', 'rtf', 'odt']:
+            body = f"""
+            <div class="section">
+                <h3>PARTIES</h3>
+                <p><strong>Provider:</strong> {company1}</p>
+                <p><strong>Client:</strong> {company2}</p>
+            </div>
+            
+            <div class="section">
+                <h3>TERMS AND CONDITIONS</h3>
+                <p>This agreement establishes the terms under which professional services will be provided.</p>
+                <p><strong>Effective Date:</strong> {date}</p>
+                <p><strong>Duration:</strong> {random.randint(12, 36)} months</p>
+                <p><strong>Compensation:</strong> ${random.randint(50000, 200000):,} annually</p>
+            </div>
+            
+            <div class="section">
+                <h3>OBLIGATIONS</h3>
+                <ul>
+                    <li>Provider shall deliver services in accordance with industry standards</li>
+                    <li>Client shall provide necessary access and cooperation</li>
+                    <li>Both parties agree to maintain confidentiality of proprietary information</li>
+                    <li>All deliverables become property of the client upon payment</li>
+                </ul>
+            </div>
+            
+            <div class="section">
+                <h3>SIGNATURES</h3>
+                <p>By signing below, both parties agree to the terms of this contract.</p>
+                <p>Provider: _________________________ Date: _____________</p>
+                <p>Client: _________________________ Date: _____________</p>
+            </div>
+            """
+        else:
+            body = f"""{contract_type.upper()}
+
+PARTIES:
+Provider: {company1}
+Client: {company2}
+
+TERMS AND CONDITIONS:
+This agreement establishes the terms under which professional services will be provided.
+
+Effective Date: {date}
+Duration: {random.randint(12, 36)} months  
+Compensation: ${random.randint(50000, 200000):,} annually
+
+OBLIGATIONS:
+• Provider shall deliver services in accordance with industry standards
+• Client shall provide necessary access and cooperation
+• Both parties agree to maintain confidentiality of proprietary information
+• All deliverables become property of the client upon payment
+
+GOVERNING LAW:
+This Agreement shall be governed by the laws of the State of {random.choice(['California', 'New York', 'Texas'])}.
+
+SIGNATURES:
+By signing below, both parties agree to the terms of this contract.
+
+Provider: _________________________ Date: _____________
+
+Client: _________________________ Date: _____________"""
+
+        return {
+            'title': contract_type.upper(),
+            'company': company1,
+            'date': date,
+            'body': body,
+            'author': "Legal Department"
+        }
+
+    def create_legal_content(self, fmt: str) -> dict:
+        """Create enhanced legal content."""
+        court = f"Superior Court of {random.choice(['Justice', 'California', 'New York', 'Texas'])}"
+        case_num = f"Case No. {random.randint(2023, 2024)}-{random.randint(100, 999)}"
+        plaintiff_name, plaintiff_last, _ = random.choice(self.people)
+        defendant_name, defendant_last, _ = random.choice(self.people)
+        date = self.random_date(60).strftime('%B %d, %Y')
+        
+        if fmt in ['html', 'rtf', 'odt']:
+            body = f"""
+            <div class="section">
+                <h3>CASE INFORMATION</h3>
+                <p><strong>{case_num}</strong></p>
+                <p><strong>Plaintiff:</strong> {plaintiff_name} {plaintiff_last}</p>
+                <p><strong>Defendant:</strong> {defendant_name} {defendant_last}</p>
+            </div>
+            
+            <div class="section">
+                <h3>LEGAL NOTICE</h3>
+                <p>YOU ARE HEREBY NOTIFIED that a legal action has been commenced against you in the {court}.</p>
+                <p><strong>Nature of Claim:</strong> {random.choice(['Breach of contract and damages', 'Employment dispute', 'Business litigation'])}</p>
+                <p><strong>Relief Sought:</strong> Monetary damages of ${random.randint(50000, 500000):,} plus costs and attorney fees.</p>
+            </div>
+            
+            <div class="section">
+                <h3>RESPONSE REQUIRED</h3>
+                <p>You have <strong>THIRTY (30) DAYS</strong> after service of this notice to file an answer with the court.</p>
+                <p>Failure to respond may result in a default judgment being entered against you.</p>
+            </div>
+            
+            <div class="section">
+                <h3>COURT INFORMATION</h3>
+                <p>{court}<br/>
+                Civil Division<br/>
+                {random.choice(self.addresses)[0]}</p>
+            </div>
+            """
+        else:
+            body = f"""{court}
+{case_num}
+
+{plaintiff_name} {plaintiff_last}
+                                                    Plaintiff
+v.
+
+{defendant_name} {defendant_last}
+                                                    Defendant
+
+LEGAL NOTICE
+
+TO: {defendant_name} {defendant_last}
+
+YOU ARE HEREBY NOTIFIED that a legal action has been commenced against you in the {court}. 
+
+NATURE OF CLAIM:
+{random.choice(['Breach of contract and violation of agreement terms', 'Employment dispute regarding contractual obligations', 'Business litigation and damages'])}
+
+RELIEF SOUGHT:
+The Plaintiff seeks monetary damages in the amount of ${random.randint(50000, 500000):,}, plus costs, interest, and attorney fees.
+
+RESPONSE REQUIRED:
+YOU HAVE THIRTY (30) DAYS after service of this Notice to file an Answer with the Court. Failure to respond within the prescribed time may result in a default judgment being entered against you.
+
+COURT INFORMATION:
+{court}
+Civil Division
+{random.choice(self.addresses)[0]}
+
+ATTORNEY FOR PLAINTIFF:
+{random.choice(['Law Offices of Smith & Associates', 'Johnson Legal Group', 'Williams & Partners LLP'])}
+Attorney Bar No: {random.randint(100000, 999999)}"""
+
+        return {
+            'title': 'LEGAL NOTICE',
+            'company': court,
+            'date': date,
+            'body': body,
+            'author': "Court Clerk"
+        }
+
+    def create_report_content(self, fmt: str) -> dict:
+        """Create enhanced report content."""
+        company = random.choice(self.companies)
+        author_name, author_last, author_title = random.choice(self.people)
+        quarter = random.choice(['Q1', 'Q2', 'Q3', 'Q4'])
+        year = random.choice([2023, 2024])
+        date = self.random_date(30).strftime('%B %d, %Y')
+        
+        revenue = random.randint(500000, 2000000)
+        expenses = random.randint(300000, int(revenue * 0.8))
+        profit = revenue - expenses
+        growth = random.uniform(-10, 25)
+        
+        if fmt in ['html', 'rtf', 'odt']:
+            body = f"""
+            <div class="section">
+                <h3>EXECUTIVE SUMMARY</h3>
+                <p>This report provides a comprehensive analysis of business performance for {quarter} {year}.</p>
+                <p>Key highlights include revenue of ${revenue:,}, representing {growth:+.1f}% growth year-over-year.</p>
+            </div>
+            
+            <div class="section">
+                <h3>FINANCIAL PERFORMANCE</h3>
+                <table>
+                    <tr><th>Metric</th><th>Current Quarter</th><th>Previous Quarter</th><th>Change</th></tr>
+                    <tr><td>Revenue</td><td>${revenue:,}</td><td>${int(revenue * 0.9):,}</td><td>+{int((revenue - revenue * 0.9) / (revenue * 0.9) * 100)}%</td></tr>
+                    <tr><td>Expenses</td><td>${expenses:,}</td><td>${int(expenses * 1.1):,}</td><td>-{int((expenses * 1.1 - expenses) / (expenses * 1.1) * 100)}%</td></tr>
+                    <tr><td>Net Profit</td><td>${profit:,}</td><td>${int(profit * 0.8):,}</td><td>+{int((profit - profit * 0.8) / (profit * 0.8) * 100)}%</td></tr>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h3>KEY METRICS</h3>
+                <ul>
+                    <li>Customer Satisfaction: {random.randint(85, 98)}%</li>
+                    <li>Employee Retention: {random.randint(88, 96)}%</li>
+                    <li>Market Share: {random.randint(12, 25)}%</li>
+                    <li>Operational Efficiency: {random.randint(78, 92)}%</li>
+                </ul>
+            </div>
+            
+            <div class="section">
+                <h3>RECOMMENDATIONS</h3>
+                <p>Based on the analysis, we recommend continued investment in core business areas and strategic expansion into emerging markets.</p>
+            </div>
+            """
+        else:
+            body = f"""EXECUTIVE SUMMARY:
+This report provides a comprehensive analysis of business performance for {quarter} {year}.
+Key highlights include revenue of ${revenue:,}, representing {growth:+.1f}% growth year-over-year.
+
+FINANCIAL PERFORMANCE:
+• Revenue: ${revenue:,}
+• Expenses: ${expenses:,}  
+• Net Profit: ${profit:,}
+• Profit Margin: {(profit/revenue*100):.1f}%
+
+KEY METRICS:
+• Customer Satisfaction: {random.randint(85, 98)}%
+• Employee Retention: {random.randint(88, 96)}%
+• Market Share: {random.randint(12, 25)}%
+• Operational Efficiency: {random.randint(78, 92)}%
+
+MARKET ANALYSIS:
+The business environment showed {random.choice(['strong growth', 'steady performance', 'moderate challenges'])} 
+during this quarter. Customer acquisition increased by {random.randint(5, 25)}% while retention 
+rates remained stable at {random.randint(88, 95)}%.
+
+RECOMMENDATIONS:
+• Continue investment in core business areas
+• Expand into emerging market segments  
+• Optimize operational processes for efficiency
+• Strengthen customer relationship management
+• Invest in employee development and retention
+
+Prepared by: {author_name} {author_last}, {author_title}"""
+
+        return {
+            'title': f'{quarter} {year} BUSINESS PERFORMANCE REPORT',
+            'company': company,
+            'date': date,
+            'body': body,
+            'author': f"{author_name} {author_last}"
+        }
+
+    def create_other_content(self, fmt: str) -> dict:
+        """Create enhanced other document content."""
+        company = random.choice(self.companies)
+        author_name, author_last, author_title = random.choice(self.people)
+        doc_types = ['Technical Manual', 'User Guide', 'System Documentation', 'Process Manual', 'Reference Guide']
+        doc_type = random.choice(doc_types)
+        date = self.random_date(60).strftime('%B %d, %Y')
+        
+        if fmt in ['html', 'rtf', 'odt']:
+            body = f"""
+            <div class="section">
+                <h3>DOCUMENT OVERVIEW</h3>
+                <p>This {doc_type.lower()} provides comprehensive guidance for system users and administrators.</p>
+                <p><strong>Version:</strong> {random.randint(1, 5)}.{random.randint(0, 9)}</p>
+                <p><strong>Last Updated:</strong> {date}</p>
+            </div>
+            
+            <div class="section">
+                <h3>SYSTEM REQUIREMENTS</h3>
+                <ul>
+                    <li>Operating System: {random.choice(['Windows 10+', 'macOS 12+', 'Linux Ubuntu 20.04+'])}</li>
+                    <li>Memory: {random.choice(['8GB', '16GB', '32GB'])} RAM minimum</li>
+                    <li>Storage: {random.choice(['50GB', '100GB', '250GB'])} available space</li>
+                    <li>Network: Broadband internet connection required</li>
+                </ul>
+            </div>
+            
+            <div class="section">
+                <h3>INSTALLATION PROCEDURES</h3>
+                <ol>
+                    <li>Download the installation package from the official website</li>
+                    <li>Run the installer with administrator privileges</li>
+                    <li>Follow the setup wizard instructions</li>
+                    <li>Configure initial settings and user preferences</li>
+                    <li>Complete the installation and restart the system</li>
+                </ol>
+            </div>
+            
+            <div class="section">
+                <h3>TROUBLESHOOTING</h3>
+                <p>For technical support, contact the IT Help Desk at extension {random.randint(1000, 9999)} or email support@{company.lower().replace(' ', '').replace(',', '').replace('.', '')}.com</p>
+            </div>
+            """
+        else:
+            body = f"""DOCUMENT OVERVIEW:
+This {doc_type.lower()} provides comprehensive guidance for system users and administrators.
+
+Version: {random.randint(1, 5)}.{random.randint(0, 9)}
+Last Updated: {date}
+
+SYSTEM REQUIREMENTS:
+• Operating System: {random.choice(['Windows 10+', 'macOS 12+', 'Linux Ubuntu 20.04+'])}
+• Memory: {random.choice(['8GB', '16GB', '32GB'])} RAM minimum
+• Storage: {random.choice(['50GB', '100GB', '250GB'])} available space
+• Network: Broadband internet connection required
+
+INSTALLATION PROCEDURES:
+1. Download the installation package from the official website
+2. Run the installer with administrator privileges  
+3. Follow the setup wizard instructions
+4. Configure initial settings and user preferences
+5. Complete the installation and restart the system
+
+CONFIGURATION GUIDELINES:
+• Set up user accounts and permissions
+• Configure network settings and security protocols
+• Customize user interface preferences
+• Enable automatic updates and backup procedures
+
+MAINTENANCE PROCEDURES:
+• Perform regular system updates and patches
+• Monitor system performance and resource usage
+• Backup important data and configuration files
+• Review security logs and access controls
+
+TROUBLESHOOTING:
+For technical support, contact the IT Help Desk at extension {random.randint(1000, 9999)} 
+or email support@{company.lower().replace(' ', '').replace(',', '').replace('.', '')}.com
+
+Quality Assurance: All procedures have been tested and validated.
+Documentation Standards: This document follows ISO 9001 guidelines."""
+
+        return {
+            'title': doc_type.upper(),
+            'company': company,
+            'date': date,
+            'body': body,
+            'author': f"{author_name} {author_last}"
+        }
+
+    # ===========================================
+    # ENHANCED MAIN GENERATION FUNCTION
+    # ===========================================
+
+    def generate_all_diverse_documents(self, total_docs: int = 120) -> Dict[str, int]:
+        """Generate diverse documents across ALL supported formats and categories."""
+        print("🚀 Generating diverse sample documents in MULTIPLE formats...")
+        print(f"📊 Creating {total_docs} documents across 6 categories and 11 file formats")
         
         self.create_output_dir()
         
-        # Define distribution
+        # Enhanced distribution
         docs_per_category = total_docs // 6
         remainder = total_docs % 6
         
@@ -1351,86 +2196,372 @@ Date: {date.strftime('%B %d, %Y')}
         }
         
         generated_files = []
-        format_count = {'pdf': 0, 'docx': 0, 'txt': 0}
+        format_count = {'pdf': 0, 'docx': 0, 'txt': 0, 'doc': 0, 'html': 0, 'rtf': 0, 
+                       'odt': 0, 'pptx': 0, 'ppt': 0, 'xlsx': 0, 'xls': 0}
         
-        # Generate invoices (mostly PDF)
-        for i in range(distribution['invoice']):
-            fmt = random.choices(['pdf', 'txt'], weights=[0.8, 0.2])[0]
-            filename = f"invoice_{i+1:03d}.{fmt}"
-            if fmt == 'pdf':
-                self.generate_invoice_pdf(filename)
-            else:
-                self.generate_invoice_txt(filename.replace('.txt', '_invoice.txt'))
-            format_count[fmt] += 1
-            generated_files.append(filename)
+        # Enhanced format distributions for each category
+        category_formats = {
+            'invoice': {
+                'formats': ['pdf', 'xlsx', 'xls', 'html', 'docx', 'txt'],
+                'weights': [0.4, 0.25, 0.15, 0.1, 0.07, 0.03]
+            },
+            'memo': {
+                'formats': ['docx', 'doc', 'txt', 'rtf', 'html', 'odt'],
+                'weights': [0.35, 0.25, 0.15, 0.1, 0.1, 0.05]
+            },
+            'contract': {
+                'formats': ['pdf', 'docx', 'doc', 'rtf', 'txt', 'html'],
+                'weights': [0.35, 0.25, 0.15, 0.1, 0.1, 0.05]
+            },
+            'legal': {
+                'formats': ['pdf', 'docx', 'txt', 'rtf', 'html', 'doc'],
+                'weights': [0.5, 0.2, 0.15, 0.08, 0.05, 0.02]
+            },
+            'report': {
+                'formats': ['xlsx', 'docx', 'pdf', 'pptx', 'html', 'txt'],
+                'weights': [0.3, 0.25, 0.2, 0.15, 0.07, 0.03]
+            },
+            'other': {
+                'formats': ['txt', 'html', 'docx', 'pdf', 'rtf', 'odt'],
+                'weights': [0.25, 0.2, 0.2, 0.15, 0.1, 0.1]
+            }
+        }
         
-        # Generate memos (mostly DOCX)
-        for i in range(distribution['memo']):
-            fmt = random.choices(['docx', 'txt'], weights=[0.7, 0.3])[0]
-            filename = f"memo_{i+1:03d}.{fmt}"
-            if fmt == 'docx':
-                self.generate_memo_docx(filename)
-            else:
-                self.generate_memo_txt(filename.replace('.txt', '_memo.txt'))
-            format_count[fmt] += 1
-            generated_files.append(filename)
+        print("\n📋 Generating documents by category:")
         
-        # Generate contracts (mostly TXT)
-        for i in range(distribution['contract']):
-            fmt = random.choices(['txt', 'pdf', 'docx'], weights=[0.6, 0.2, 0.2])[0]
-            filename = f"contract_{i+1:03d}.{fmt}"
-            if fmt == 'txt':
-                self.generate_contract_txt(filename)
-            elif fmt == 'pdf':
-                self.generate_contract_pdf(filename.replace('.pdf', '_contract.pdf'))
-            else:
-                self.generate_contract_docx(filename.replace('.docx', '_contract.docx'))
-            format_count[fmt] += 1
-            generated_files.append(filename)
+        for category, count in distribution.items():
+            print(f"  📁 {category.capitalize()}: {count} documents")
+            
+            formats = category_formats[category]['formats']
+            weights = category_formats[category]['weights']
+            
+            for i in range(count):
+                fmt = random.choices(formats, weights=weights)[0]
+                filename = f"{category}_{i+1:03d}.{fmt}"
+                
+                try:
+                    # Generate file using existing methods for now
+                    if fmt == 'pdf':
+                        if hasattr(self, f'generate_{category}_pdf'):
+                            getattr(self, f'generate_{category}_pdf')(filename)
+                        else:
+                            # Fallback method
+                            self.generate_simple_pdf(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'docx':
+                        if hasattr(self, f'generate_{category}_docx'):
+                            getattr(self, f'generate_{category}_docx')(filename)
+                        else:
+                            self.generate_simple_docx(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'txt':
+                        if hasattr(self, f'generate_{category}_txt'):
+                            getattr(self, f'generate_{category}_txt')(filename)
+                        else:
+                            self.generate_simple_txt(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'html':
+                        self.generate_simple_html(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'rtf':
+                        self.generate_simple_rtf(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'doc':
+                        self.generate_simple_doc(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'odt':
+                        if self.generate_simple_odt(filename, category.upper(), f"{category.title()} document") is None:
+                            # Fallback to RTF
+                            fmt = 'rtf'
+                            filename = filename.replace('.odt', '.rtf')
+                            self.generate_simple_rtf(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'pptx':
+                        if self.generate_simple_pptx(filename, category.upper(), f"{category.title()} presentation") is None:
+                            # Fallback to PDF
+                            fmt = 'pdf'
+                            filename = filename.replace('.pptx', '.pdf')
+                            self.generate_simple_pdf(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'xlsx':
+                        if self.generate_simple_xlsx(filename, category.upper(), f"{category.title()} data") is None:
+                            # Fallback to TXT
+                            fmt = 'txt'
+                            filename = filename.replace('.xlsx', '.txt')
+                            self.generate_simple_txt(filename, category.upper(), f"{category.title()} document")
+                    elif fmt == 'xls':
+                        if self.generate_simple_xls(filename, category.upper(), f"{category.title()} data") is None:
+                            # Fallback to TXT
+                            fmt = 'txt'
+                            filename = filename.replace('.xls', '.txt')
+                            self.generate_simple_txt(filename, category.upper(), f"{category.title()} document")
+                    
+                    format_count[fmt] += 1
+                    generated_files.append(filename)
         
-        # Generate legal docs (mostly PDF)
-        for i in range(distribution['legal']):
-            fmt = random.choices(['pdf', 'txt'], weights=[0.8, 0.2])[0]
-            filename = f"legal_{i+1:03d}.{fmt}"
-            if fmt == 'pdf':
-                self.generate_legal_pdf(filename)
-            else:
-                self.generate_legal_txt(filename.replace('.txt', '_legal.txt'))
-            format_count[fmt] += 1
-            generated_files.append(filename)
+                except Exception as e:
+                    print(f"⚠️  Error generating {filename}: {e}")
+                    # Generate fallback TXT file
+                    txt_filename = f"{category}_{i+1:03d}.txt"
+                    try:
+                        self.generate_simple_txt(txt_filename, category.upper(), f"{category.title()} document")
+                        format_count['txt'] += 1
+                        generated_files.append(txt_filename)
+                    except:
+                        print(f"❌ Failed to generate fallback for {category}_{i+1:03d}")
         
-        # Generate reports (mostly DOCX)
-        for i in range(distribution['report']):
-            fmt = random.choices(['docx', 'pdf'], weights=[0.7, 0.3])[0]
-            filename = f"report_{i+1:03d}.{fmt}"
-            if fmt == 'docx':
-                self.generate_report_docx(filename)
-            else:
-                self.generate_report_pdf(filename.replace('.pdf', '_report.pdf'))
-            format_count[fmt] += 1
-            generated_files.append(filename)
+        # Print comprehensive summary
+        print(f"\n✅ Successfully generated {len(generated_files)} diverse documents!")
+        print(f"\n📊 FORMAT DISTRIBUTION:")
+        for fmt, count in format_count.items():
+            if count > 0:
+                icon = {'pdf': '📄', 'docx': '📝', 'txt': '📋', 'doc': '📄', 'html': '🌐', 
+                       'rtf': '📄', 'odt': '📄', 'pptx': '📊', 'ppt': '📊', 'xlsx': '📊', 'xls': '📊'}
+                print(f"   {icon.get(fmt, '📄')} {fmt.upper()}: {count} files")
         
-        # Generate other docs (mixed formats)
-        for i in range(distribution['other']):
-            fmt = random.choice(['txt', 'pdf', 'docx'])
-            filename = f"other_{i+1:03d}.{fmt}"
-            if fmt == 'txt':
-                self.generate_other_txt(filename)
-            elif fmt == 'pdf':
-                self.generate_other_pdf(filename.replace('.pdf', '_other.pdf'))
-            else:
-                self.generate_other_docx(filename.replace('.docx', '_other.docx'))
-            format_count[fmt] += 1
-            generated_files.append(filename)
-        
-        print(f"✅ Generated {len(generated_files)} diverse documents:")
-        print(f"   📄 PDFs: {format_count['pdf']}")
-        print(f"   📝 DOCX: {format_count['docx']}")
-        print(f"   📋 TXT: {format_count['txt']}")
-        print(f"   📁 Total: {sum(format_count.values())} documents")
         print(f"\n📂 Documents organized by format in '{self.output_dir}/' folder")
+        print(f"🎯 Ready for classification testing with enhanced diversity!")
         
         return format_count
+
+    # ===========================================
+    # SIMPLE GENERATORS FOR NEW FORMATS
+    # ===========================================
+
+    def generate_simple_html(self, filename: str, doc_type: str, description: str):
+        """Generate a simple HTML document."""
+        filepath = os.path.join(self.output_dir, 'html', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{doc_type}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; }}
+        .header {{ text-align: center; border-bottom: 2px solid #333; }}
+        .content {{ margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{company}</h1>
+        <h2>{doc_type}</h2>
+        <p>Date: {date}</p>
+    </div>
+    <div class="content">
+        <p>{description}</p>
+        <p>This document contains important business information and procedures.</p>
+        <p>Generated on {datetime.now().strftime('%Y-%m-%d')}</p>
+    </div>
+</body>
+</html>"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    def generate_simple_rtf(self, filename: str, doc_type: str, description: str):
+        """Generate a simple RTF document."""
+        filepath = os.path.join(self.output_dir, 'rtf', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        rtf_content = r"""{{\rtf1\ansi\deff0 {{\fonttbl{{\f0 Arial;}}}}
+\f0\fs24 """ + company + r"""
+\par """ + doc_type + r"""
+\par Date: """ + date + r"""
+\par 
+\par """ + description + r"""
+\par This document contains important business information.
+\par Generated: """ + datetime.now().strftime('%Y-%m-%d') + r"""
+\par }}"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(rtf_content)
+
+    def generate_simple_doc(self, filename: str, doc_type: str, description: str):
+        """Generate a simple DOC document (RTF format for compatibility)."""
+        filepath = os.path.join(self.output_dir, 'doc', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        rtf_content = r"""{{\rtf1\ansi\deff0 {{\fonttbl{{\f0 Arial;}}}}
+\f0\fs24 """ + company + r"""
+\par """ + doc_type + r"""
+\par Date: """ + date + r"""
+\par 
+\par """ + description + r"""
+\par This document contains important business information.
+\par Format: Legacy DOC Compatible
+\par Generated: """ + datetime.now().strftime('%Y-%m-%d') + r"""
+\par }}"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(rtf_content)
+
+    def generate_simple_odt(self, filename: str, doc_type: str, description: str):
+        """Generate a simple ODT document."""
+        if OpenDocumentText is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'odt', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        try:
+            doc = OpenDocumentText()
+            
+            title = H(outlinelevel=1, text=doc_type)
+            doc.text.addElement(title)
+            
+            company_para = P(text=f"Company: {company}")
+            doc.text.addElement(company_para)
+            
+            date_para = P(text=f"Date: {date}")
+            doc.text.addElement(date_para)
+            
+            doc.text.addElement(P())
+            
+            desc_para = P(text=description)
+            doc.text.addElement(desc_para)
+            
+            info_para = P(text="This document contains important business information.")
+            doc.text.addElement(info_para)
+            
+            doc.save(filepath)
+            return filepath
+        except Exception as e:
+            print(f"Error generating ODT: {e}")
+            return None
+
+    def generate_simple_pptx(self, filename: str, doc_type: str, description: str):
+        """Generate a simple PPTX presentation."""
+        if Presentation is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'pptx', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        try:
+            prs = Presentation()
+            
+            # Title slide
+            title_slide_layout = prs.slide_layouts[0]
+            slide = prs.slides.add_slide(title_slide_layout)
+            title = slide.shapes.title
+            subtitle = slide.placeholders[1]
+            
+            title.text = doc_type
+            subtitle.text = f"{company}\n{date}"
+            
+            # Content slide
+            bullet_slide_layout = prs.slide_layouts[1]
+            slide = prs.slides.add_slide(bullet_slide_layout)
+            title = slide.shapes.title
+            content = slide.placeholders[1]
+            
+            title.text = "Overview"
+            content.text = f"• {description}\n• Contains important business information\n• Generated for classification testing"
+            
+            prs.save(filepath)
+            return filepath
+        except Exception as e:
+            print(f"Error generating PPTX: {e}")
+            return None
+
+    def generate_simple_xlsx(self, filename: str, doc_type: str, description: str):
+        """Generate a simple XLSX spreadsheet."""
+        if pd is None or openpyxl is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'xlsx', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        try:
+            data = {
+                'Field': ['Document Type', 'Company', 'Date', 'Description', 'Status'],
+                'Value': [doc_type, company, date, description, 'Active']
+            }
+            df = pd.DataFrame(data)
+            df.to_excel(filepath, index=False)
+            return filepath
+        except Exception as e:
+            print(f"Error generating XLSX: {e}")
+            return None
+
+    def generate_simple_xls(self, filename: str, doc_type: str, description: str):
+        """Generate a simple XLS spreadsheet."""
+        if pd is None:
+            return None
+            
+        filepath = os.path.join(self.output_dir, 'xls', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        try:
+            data = {
+                'Field': ['Type', 'Company', 'Date'],
+                'Value': [doc_type, company, date]
+            }
+            df = pd.DataFrame(data)
+            df.to_excel(filepath, index=False, engine='xlwt')
+            return filepath
+        except Exception as e:
+            print(f"Error generating XLS: {e}")
+            return None
+
+    def generate_simple_pdf(self, filename: str, doc_type: str, description: str):
+        """Generate a simple PDF document."""
+        filepath = os.path.join(self.output_dir, 'pdf', filename)
+        doc = SimpleDocTemplate(filepath, pagesize=letter)
+        story = []
+        styles = getSampleStyleSheet()
+        
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        story.append(Paragraph(company, styles['Title']))
+        story.append(Paragraph(doc_type, styles['Heading1']))
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(f"Date: {date}", styles['Normal']))
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(description, styles['Normal']))
+        story.append(Paragraph("This document contains important business information.", styles['Normal']))
+        
+        doc.build(story)
+
+    def generate_simple_docx(self, filename: str, doc_type: str, description: str):
+        """Generate a simple DOCX document."""
+        filepath = os.path.join(self.output_dir, 'docx', filename)
+        doc = DocxDocument()
+        
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        doc.add_heading(doc_type, 0)
+        doc.add_paragraph(f"Company: {company}")
+        doc.add_paragraph(f"Date: {date}")
+        doc.add_paragraph("")
+        doc.add_paragraph(description)
+        doc.add_paragraph("This document contains important business information.")
+        
+        doc.save(filepath)
+
+    def generate_simple_txt(self, filename: str, doc_type: str, description: str):
+        """Generate a simple TXT document."""
+        filepath = os.path.join(self.output_dir, 'txt', filename)
+        company = random.choice(self.companies)
+        date = self.random_date(90).strftime('%B %d, %Y')
+        
+        content = f"""{doc_type}
+
+Company: {company}
+Date: {date}
+
+{description}
+
+This document contains important business information and procedures.
+Generated on {datetime.now().strftime('%Y-%m-%d')}
+"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
 
 def main():
     """Main function to generate diverse sample documents."""

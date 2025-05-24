@@ -5,12 +5,21 @@ numpy>=1.24.0
 
 # Document Processing
 python-docx>=0.8.11
-PyPDF2>=3.0.0
+pdfminer.six>=20221105     # Better PDF processing than PyPDF2
 nltk>=3.8
+
+# Additional Document Format Support
+docx2txt>=0.8              # For .doc files (correct package name)
+beautifulsoup4>=4.12.0     # For .html/.htm files
+striprtf>=0.0.26           # For .rtf files
+odfpy>=1.4.1               # For .odt files
+python-pptx>=0.6.21        # For .pptx files
+openpyxl>=3.1.0            # For .xlsx files
+xlrd>=2.0.1                # For .xls files
 
 # Dashboard and Visualization
 streamlit>=1.28.0
 plotly>=5.15.0
 
-# Standard Libraries (usually included with Python)
-pickle-mixin>=1.0.2
+# File processing utilities
+lxml>=4.9.0                # XML/HTML parser for BeautifulSoup

@@ -185,30 +185,30 @@ def display_summary_metrics(df):
     categories = df['predicted_category'].nunique()
     
     col1, col2, col3, col4, col5 = st.columns(5)
-    
-    with col1:
-        st.metric(
+            
+            with col1:
+                st.metric(
             label="📁 Total Documents",
             value=f"{total_docs:,}",
             delta=None
-        )
-    
-    with col2:
-        st.metric(
+                )
+            
+            with col2:
+                st.metric(
             label="🎯 Average Confidence",
             value=f"{avg_confidence:.3f}",
             delta=f"{((avg_confidence - 0.8) * 100):+.1f}%" if avg_confidence > 0.8 else None
-        )
-    
-    with col3:
-        st.metric(
+                )
+            
+            with col3:
+                st.metric(
             label="⭐ High Confidence (>0.9)",
             value=f"{high_confidence:,}",
             delta=f"{(high_confidence/total_docs)*100:.1f}%"
-        )
-    
-    with col4:
-        st.metric(
+                )
+            
+            with col4:
+                st.metric(
             label="🎖️ Perfect Confidence (1.0)",
             value=f"{perfect_confidence:,}",
             delta=f"{(perfect_confidence/total_docs)*100:.1f}%"
@@ -264,7 +264,7 @@ def display_low_confidence_files(df, threshold=0.8):
     
     if len(low_confidence) > 0:
         st.subheader(f"⚠️ Files with Confidence < {threshold}")
-        st.dataframe(
+            st.dataframe(
             low_confidence[['filename', 'predicted_category', 'confidence', 'word_count']],
             use_container_width=True
         )
